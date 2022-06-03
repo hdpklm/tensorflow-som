@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tf_som import SelfOrganizingMap
 from sklearn.datasets import make_blobs
 from sklearn.preprocessing import StandardScaler
 import logging
 from scipy.spatial import distance_matrix
-
+tf.disable_v2_behavior()
 '''
 An example usage of the TensorFlow SOM. Loads a data set, trains a SOM, and displays the u-matrix.
 '''
@@ -36,27 +36,28 @@ def get_umatrix(input_vects, weights, m, n):
 
     for i in range(m * n):
         # Get the indices of the units which neighbor i
-        neighbor_idxs = neuron_distmat[i] <= 1  # Change this to `< 2` if you want to include diagonal neighbors
+        # Change this to `< 2` if you want to include diagonal neighbors
+        neighbor_idxs = neuron_distmat[i] <= 1
         # Get the weights of those units
         neighbor_weights = weights[neighbor_idxs]
         # Get the average distance between unit i and all of its neighbors
         # Expand dims to broadcast to each of the neighbors
-        umatrix[i] = distance_matrix(np.expand_dims(weights[i], 0), neighbor_weights).mean()
+        umatrix[i] = distance_matrix(np.expand_dims(
+            weights[i], 0), neighbor_weights).mean()
 
     bmu_indices = []
     for vect in input_vects:
         min_index = min([i for i in range(len(list(weights)))],
-                        key=lambda x: np.linalg.norm(vect-
+                        key=lambda x: np.linalg.norm(vect -
                                                      list(weights)[x]))
         bmu_indices.append(neuron_locs[min_index])
-        
+
     return umatrix, bmu_indices
 
 
-
-
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s - %(levelname)s - %(message)s')
 
     graph = tf.Graph()
     with graph.as_default():
@@ -76,7 +77,8 @@ if __name__ == "__main__":
         batch_size = 128
 
         # Build the TensorFlow dataset pipeline per the standard tutorial.
-        dataset = tf.data.Dataset.from_tensor_slices(input_data.astype(np.float32))
+        dataset = tf.data.Dataset.from_tensor_slices(
+            input_data.astype(np.float32))
         dataset = dataset.repeat()
         dataset = dataset.batch(batch_size)
         iterator = dataset.make_one_shot_iterator()
@@ -98,8 +100,8 @@ if __name__ == "__main__":
         som.train(num_inputs=num_inputs)
 
         weights = som.output_weights
-        
-        umatrix, bmu_loc = get_umatrix(input_data,weights, m, n)
+
+        umatrix, bmu_loc = get_umatrix(input_data, weights, m, n)
         fig = plt.figure()
         plt.imshow(umatrix.reshape((m, n)), origin='lower')
         plt.show(block=True)
